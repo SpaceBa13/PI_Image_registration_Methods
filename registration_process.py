@@ -8,8 +8,8 @@ from skimage.measure import ransac
 # ---------------------------
 # Load images
 # ---------------------------
-image1 = cv2.imread('cuanderno_1.jpeg', cv2.IMREAD_GRAYSCALE)
-image2 = cv2.imread('cuanderno_2.jpeg', cv2.IMREAD_GRAYSCALE)
+image1 = cv2.imread('1_control.jpeg', cv2.IMREAD_GRAYSCALE)
+image2 = cv2.imread('2_control.jpeg', cv2.IMREAD_GRAYSCALE)
 
 # Check if images are loaded
 if image1 is None or image2 is None:
@@ -44,22 +44,24 @@ dst = keypoints2[matches[:, 1]]
 # ---------------------------
 # Custom function to plot matches
 # ---------------------------
-def plot_matches_custom(ax, image1, image2, keypoints1, keypoints2, matches):
+def plot_matches_custom(ax, image1, image2, keypoints1, keypoints2, matches, inliers):
     ax.imshow(np.hstack([image1, image2]), cmap='gray')
     ax.axis('off')
     offset = image1.shape[1]
-    for i, j in matches:
+
+    for idx, (i, j) in enumerate(matches):
         y1, x1 = keypoints1[i]
         y2, x2 = keypoints2[j]
-        ax.plot([x1, x2 + offset], [y1, y2], 'r-', linewidth=0.5)
-        ax.plot(x1, y1, 'ro', markersize=3)
-        ax.plot(x2 + offset, y2, 'ro', markersize=3)
 
-# Plot keypoints and matches
-fig, ax = plt.subplots(1, 1, figsize=(12, 6))
-plot_matches_custom(ax, image1, image2, keypoints1, keypoints2, matches)
-ax.set_title("Keypoint Matches")
-plt.show()
+        if inliers[idx]:
+            color = 'lime'   # match bueno
+        else:
+            color = 'red'    # match malo
+
+        ax.plot([x1, x2 + offset], [y1, y2], color=color, linewidth=0.7)
+        ax.plot(x1, y1, 'o', color=color, markersize=3)
+        ax.plot(x2 + offset, y2, 'o', color=color, markersize=3)
+
 
 # ---------------------------
 # Verify number of matches
@@ -77,6 +79,30 @@ model_robust, inliers = ransac((dst, src),
 
 # Warp image
 registered_image = warp(image1, model_robust.inverse, output_shape=image2.shape)
+
+
+# Plot keypoints and matches
+fig, ax = plt.subplots(1, 1, figsize=(12, 6))
+plot_matches_custom(ax, image1, image2, keypoints1, keypoints2, matches, inliers)
+ax.set_title("Matches (verde = buenos, rojo = malos)")
+plt.show()
+
+
+# ---------------------------
+# ORB Similarity Score
+# ---------------------------
+
+num_matches = len(matches)
+num_inliers = np.sum(inliers)
+
+num_keypoints = min(len(keypoints1), len(keypoints2))
+
+similarity_score = num_inliers / num_keypoints
+
+print("Matches:", num_matches)
+print("Inliers:", num_inliers)
+print("Similarity score:", similarity_score)
+
 
 # ---------------------------
 # Display results
