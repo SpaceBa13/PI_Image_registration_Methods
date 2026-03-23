@@ -1,0 +1,8 @@
+# -----------------------------
+# Calibration videos (large files)
+# -----------------------------
+
+resources/calibration_video/*
+
+# keep folder structure
+!resources/calibration_video/.gitkeep

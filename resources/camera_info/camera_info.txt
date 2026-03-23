@@ -1,0 +1,4 @@
+device: Samsung Galaxy S24
+zoom: 2x
+resolution: 4032x3024
+fps: 30

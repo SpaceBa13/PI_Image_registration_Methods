@@ -2,7 +2,7 @@ import cv2
 import numpy as np
 import matplotlib.pyplot as plt
 from skimage.feature import ORB, match_descriptors
-from skimage.transform import AffineTransform, warp, resize
+from skimage.transform import AffineTransform, warp, resize, ProjectiveTransform
 from skimage.measure import ransac
 
 # ---------------------------
@@ -35,7 +35,12 @@ descriptors2 = orb.descriptors
 # ---------------------------
 # Match descriptors
 # ---------------------------
-matches = match_descriptors(descriptors1, descriptors2, cross_check=True)
+matches = match_descriptors(
+    descriptors1,
+    descriptors2,
+    cross_check=True,
+    max_ratio=0.8
+)
 
 # Extract matched keypoints
 src = keypoints1[matches[:, 0]]
@@ -73,9 +78,13 @@ if len(matches) < 4:
 # ---------------------------
 # Compute affine transformation using RANSAC
 # ---------------------------
-model_robust, inliers = ransac((dst, src),
-                               AffineTransform, min_samples=4,
-                               residual_threshold=2, max_trials=1000)
+model_robust, inliers = ransac(
+    (dst, src),
+    ProjectiveTransform,
+    min_samples=4,
+    residual_threshold=5,
+    max_trials=2000
+)
 
 # Warp image
 registered_image = warp(image1, model_robust.inverse, output_shape=image2.shape)
@@ -88,20 +97,9 @@ ax.set_title("Matches (verde = buenos, rojo = malos)")
 plt.show()
 
 
-# ---------------------------
-# ORB Similarity Score
-# ---------------------------
 
-num_matches = len(matches)
-num_inliers = np.sum(inliers)
+E, mask = cv2.findEssentialMat(pts1, pts2, K)
 
-num_keypoints = min(len(keypoints1), len(keypoints2))
-
-similarity_score = num_inliers / num_keypoints
-
-print("Matches:", num_matches)
-print("Inliers:", num_inliers)
-print("Similarity score:", similarity_score)
 
 
 # ---------------------------
