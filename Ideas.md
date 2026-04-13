@@ -76,9 +76,9 @@ SLAM-System
 
 El SLAM geométrico es la base del sistema. Aquí la estimación del movimiento y del mapa se realiza únicamente usando propiedades geométricas de las imágenes, sin ningún aprendizaje automático.
 
-El proceso comienza con la adquisición de imágenes de la cámara, normalmente en forma de video. Es importante que la cámara esté calibrada para obtener la matriz intrínseca (K), que describe cómo la cámara proyecta puntos 3D en el plano de imagen. Esta calibración se puede realizar usando herramientas de OpenCV con un patrón de tablero de ajedrez.
+El proceso comienza con la adquisición de imágenes de la cámara, normalmente en forma de video. Es importante que la cámara esté calibrada para obtener la matriz intrínseca (K), que describe cómo la cámara proyecta puntos 3D en el plano de imagen. Esta calibración se puede realizar usando herramientas de OpenCV con un patrón de tablero de ajedrez (ya realizada).
 
-Luego se realiza la detección de features, que son puntos distintivos de la imagen que pueden ser reconocidos en diferentes fotogramas. Detectores comunes son ORB, SIFT y AKAZE. Cada feature incluye un descriptor que permite comparar puntos entre imágenes.
+Luego se realiza la detección de features, que son puntos distintivos de la imagen que pueden ser reconocidos en diferentes fotogramas. Detectores comunes son ORB (Implementado en este proyecto), SIFT y AKAZE. Cada feature incluye un descriptor que permite comparar puntos entre imágenes.
 
 En la etapa de matching, los descriptores se comparan entre dos frames consecutivos para encontrar correspondencias. Este proceso utiliza métricas como distancia Hamming (para ORB) o métodos aproximados como FLANN. Para eliminar coincidencias incorrectas se utilizan técnicas como ratio test y RANSAC.
 
