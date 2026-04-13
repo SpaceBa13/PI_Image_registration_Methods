@@ -71,7 +71,7 @@ def main():
     # Description:
     #   Select frames with sufficient lateral baseline to 
     #   ensure triangulation with low geometric error.
-    img1 = data_provider.load_frame("resources/ORB_test_images/Micro_frame2.jpeg")
+    img1 = data_provider.load_frame("resources/ORB_test_images/Micro_frame3.jpeg")
     img2 = data_provider.load_frame("resources/ORB_test_images/Micro_frame4.jpeg")
 
     if img1 is None or img2 is None:
