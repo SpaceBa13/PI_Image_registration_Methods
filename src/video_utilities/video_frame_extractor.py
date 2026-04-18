@@ -63,5 +63,5 @@ mi_video = r"resources\Triangulation_test_videos\video_base.mp4"
 mi_destino = r"resources\Triangulation_test_videos\video_frames"
 
 # Cambia este valor al framerate que necesites para tu SLAM
-target_fps = 4
+target_fps = 2
 extract_frames(mi_video, mi_destino, target_fps)

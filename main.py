@@ -17,6 +17,7 @@ from src.map_triangulation_3d import MapTriangulator
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 from src.feature_tracker import FeatureTracker
+from src.SLAM.slam_visualizer import SLAMVisualizer3D
 
 
 # -------------------------
@@ -67,6 +68,7 @@ def main():
     motion_engine = MotionEstimator(K)
     map_builder = MapTriangulator(K)
 
+
     # -------------------------
     # 2. Data Acquisition
     # -------------------------
@@ -75,7 +77,7 @@ def main():
     #   ensure triangulation with low geometric error.
 
     img1 = data_provider.load_frame(r"resources\Triangulation_test_videos\video_frames\frame_0000.jpg")
-    img2 = data_provider.load_frame(r"resources\Triangulation_test_videos\video_frames\frame_0001.jpg")
+    img2 = data_provider.load_frame(r"resources\Triangulation_test_videos\video_frames\frame_0006.jpg")
     if img1 is None or img2 is None:
         print("[ERROR] Image loading failed.")
         return
@@ -103,12 +105,25 @@ def main():
     pts2_final = pts2_tracked[pose_mask.ravel() == 1]
     
     points_3d = map_builder.triangulate(R, t, pts1_final, pts2_final)
+
+    
     
     # 4. Visualización
-    # visualize_slam_matches(img1, img2, pts1_final, pts2_final, points_3d)
+    visualize_slam_matches(img1, img2, pts1_final, pts2_final, points_3d)
 
     # Realizar el seguimiento
     pts1_tracked, pts2_tracked, status = tracker.track(img1, img2, pts1_input)
+
+
+    visualizer = SLAMVisualizer3D(
+        data_provider=data_provider,
+        tracker=tracker,
+        motion_engine=motion_engine,
+        map_builder=map_builder,
+        extractor=extractor
+    )
+
+
 
     # Generar la visualización tipo "trail"
     tracking_vis = draw_feature_tracking(img2, pts1_tracked, pts2_tracked)
@@ -117,52 +132,6 @@ def main():
     cv2.imshow("Feature Tracking Output", tracking_vis)
     cv2.waitKey(0)
 
-
-    """
-
-    # -------------------------
-    # 3. Processing Pipeline
-    # -------------------------
-    
-    # A. Feature Extraction (ORB)
-    # Detect keypoints and generate binary descriptors.
-    kp1, des1 = extractor.extract(img1)
-    kp2, des2 = extractor.extract(img2)
-    print(f"[INFO] Features detected: Frame1={len(kp1)}, Frame2={len(kp2)}")
-
-    # B. Matching and RANSAC Filtering
-    # Filter false correspondences using the epipolar constraint.
-    pts1, pts2, match_mask = matcher.match(kp1, des1, kp2, des2)
-    print(f"[INFO] Valid matches (Inliers): {len(pts1)}")
-
-    # C. Motion Estimation
-    # Recover camera Rotation (R) and Translation (t).
-    R, t, pose_mask = motion_engine.recover_camera_motion(pts1, pts2)
-    
-    print("\n--- Pose Estimation (Camera Motion) ---")
-    print(f"Rotation Matrix (R):\n{R}")
-    print(f"Translation Vector (t):\n{t}")
-
-    # D. 3D Map Generation (Triangulation)
-    # Project 2D points into 3D space relative to the camera.
-    points_3d = map_builder.triangulate(R, t, pts1, pts2)
-    
-    print(f"\n[INFO] Triangulated 3D points: {len(points_3d)}")
-    print(f"Sample coordinates (X, Y, Z):\n{points_3d[:5]}")
-
-    # -------------------------
-    # 4. Visualization & Inspection
-    # -------------------------
-    # Description:
-    #   Launch the synchronized dual-system:
-    #   - OpenCV: 2D match and optical flow inspection.
-    #   - Matplotlib: Interactive 3D point cloud for metrology.
-    print(f"\n[SYSTEM] Starting synchronized visualization...")
-    visualize_slam_matches(img1, img2, pts1, pts2, points_3d)
-    
-    # Block thread to keep windows open
-    cv2.waitKey(0)
-    """
 
 
 
