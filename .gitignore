@@ -1,8 +1,28 @@
-# -----------------------------
-# Calibration videos (large files)
-# -----------------------------
+# =========================================================
+# Python & Virtual Environments
+# =========================================================
+venv/
+.venv/
+env/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
 
+# =========================================================
+# IDE Settings (VS Code)
+# =========================================================
+.vscode/
+.history/
+
+# =========================================================
+# Heavy Data & Results (Files > 50MB)
+# =========================================================
+# Ignorar videos de calibración pesados
 resources/calibration_video/*
+# Ignorar videos de prueba largos
+resources/Triangulation_test_videos/*
 
-# keep folder structure
+# Mantener la estructura de carpetas
 !resources/calibration_video/.gitkeep
+!resources/Triangulation_test_videos/.gitkeep

@@ -87,3 +87,5 @@ Una vez que se tienen correspondencias confiables, se estima la matriz esencial,
 Con estas poses se realiza la triangulación, que consiste en calcular la posición tridimensional de los puntos observados en dos imágenes distintas. Esto produce una nube de puntos 3D, que constituye el mapa inicial del entorno.
 
 Finalmente, el sistema acumula las poses estimadas para reconstruir la trayectoria de la cámara.
+
+https://www.kaggle.com/code/luischavarriazamora/vipro-tec

@@ -64,8 +64,8 @@ class FeatureMatcher:
             pts2,                # Points from the second frame
             self.K,              # Samsung S24 Intrinsic matrix
             method=cv2.RANSAC,   # Random Sample Consensus to ignore wrong matches
-            prob=0.999,          # High probability ensures a robust model
-            threshold=1.2        # Tight threshold for sub-pixel precision in SLAM
+            prob=0.9999,          # High probability ensures a robust model
+            threshold=1.0        # Tight threshold for sub-pixel precision in SLAM
         )
 
         if mask is not None:

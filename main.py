@@ -16,6 +16,7 @@ from src.motion_estimation_geometry import MotionEstimator
 from src.map_triangulation_3d import MapTriangulator
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
+from src.feature_tracker import FeatureTracker
 
 
 # -------------------------
@@ -60,6 +61,7 @@ def main():
         return
 
     # Initialize core pipeline modules
+    tracker = FeatureTracker()
     extractor = ORBFeatureExtractor(n_features=2000)
     matcher = FeatureMatcher(K)
     motion_engine = MotionEstimator(K)
@@ -71,12 +73,52 @@ def main():
     # Description:
     #   Select frames with sufficient lateral baseline to 
     #   ensure triangulation with low geometric error.
-    img1 = data_provider.load_frame("resources/ORB_test_images/Micro_frame3.jpeg")
-    img2 = data_provider.load_frame("resources/ORB_test_images/Micro_frame4.jpeg")
 
+    img1 = data_provider.load_frame(r"resources\Triangulation_test_videos\video_frames\frame_0000.jpg")
+    img2 = data_provider.load_frame(r"resources\Triangulation_test_videos\video_frames\frame_0001.jpg")
     if img1 is None or img2 is None:
         print("[ERROR] Image loading failed.")
         return
+
+    # 3. Pipeline con Tracking
+    
+    # A. Detección inicial solo en el Frame 1
+    kp1, des1 = extractor.extract(img1)
+    # Convertimos los keypoints a formato numpy (u, v) para el tracker
+    pts1_input = np.array([kp.pt for kp in kp1], dtype=np.float32)
+
+    # B. Tracking hacia el Frame 2 (reemplaza a FeatureMatcher)
+    # El tracker nos dice dónde terminaron los puntos de img1 en img2
+    pts1_tracked, pts2_tracked, status = tracker.track(img1, img2, pts1_input)
+    
+    print(f"[INFO] Puntos seguidos con éxito: {len(pts2_tracked)}")
+
+    # C. Estimación de Movimiento (Usa los puntos del tracker)
+    # RANSAC dentro de recover_camera_motion limpiará los errores del tracking
+    R, t, pose_mask = motion_engine.recover_camera_motion(pts1_tracked, pts2_tracked)
+
+    # D. Triangulación
+    # Importante: Solo triangulamos los puntos que pasaron el filtro de RANSAC (pose_mask)
+    pts1_final = pts1_tracked[pose_mask.ravel() == 1]
+    pts2_final = pts2_tracked[pose_mask.ravel() == 1]
+    
+    points_3d = map_builder.triangulate(R, t, pts1_final, pts2_final)
+    
+    # 4. Visualización
+    # visualize_slam_matches(img1, img2, pts1_final, pts2_final, points_3d)
+
+    # Realizar el seguimiento
+    pts1_tracked, pts2_tracked, status = tracker.track(img1, img2, pts1_input)
+
+    # Generar la visualización tipo "trail"
+    tracking_vis = draw_feature_tracking(img2, pts1_tracked, pts2_tracked)
+
+    # Mostrar el resultado
+    cv2.imshow("Feature Tracking Output", tracking_vis)
+    cv2.waitKey(0)
+
+
+    """
 
     # -------------------------
     # 3. Processing Pipeline
@@ -120,8 +162,35 @@ def main():
     
     # Block thread to keep windows open
     cv2.waitKey(0)
+    """
 
 
+
+
+def draw_feature_tracking(image, pts_old, pts_new):
+    """
+    Dibuja líneas de flujo (rojas) y puntos actuales (verdes) 
+    para visualizar el movimiento de las características.
+    """
+    # Creamos una copia para no sobreescribir la imagen original
+    vis_img = image.copy()
+    
+    # Si la imagen es en escala de grises, la convertimos a BGR para dibujar en color
+    if len(vis_img.shape) == 2:
+        vis_img = cv2.cvtColor(vis_img, cv2.COLOR_GRAY2BGR)
+
+    for i, (new, old) in enumerate(zip(pts_new, pts_old)):
+        # Coordenadas de los puntos (deben ser enteros para OpenCV)
+        a, b = new.ravel().astype(int)
+        c, d = old.ravel().astype(int)
+
+        # Dibujar la línea roja que representa la trayectoria (estela)
+        vis_img = cv2.line(vis_img, (a, b), (c, d), (0, 0, 255), 2)
+        
+        # Dibujar el punto verde en la posición actual
+        vis_img = cv2.circle(vis_img, (a, b), 4, (0, 255, 0), -1)
+
+    return vis_img
 
 
 # -------------------------

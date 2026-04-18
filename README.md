@@ -1,95 +1,59 @@
-# Matches vs Inliers en ORB + RANSAC
+# SLAM Geométrico: Fase 1 - Reconstrucción Dispersa
 
-Este documento explica la diferencia entre **matches** e **inliers**
-usando el mismo flujo de procesamiento utilizado en el código del
-proyecto.
+Brayan Alpizar Elizondo  
+Ingenieria en Computadores  
+Instituto Tecnológico de Costa Rica (TEC)  
+Samsung S24 (Sensor 2x Calibrado)
 
-El objetivo es comparar dos imágenes utilizando **ORB features**,
-encontrar correspondencias y luego filtrar coincidencias incorrectas
-usando **RANSAC**.
+## 1. Descripcion General
+Este proyecto implementa la primera etapa de un sistema SLAM (Simultaneous Localization and Mapping). El software procesa pares de imagenes para estimar el movimiento relativo de una camara en un entorno tridimensional y genera una representacion dispersa del escenario mediante una nube de puntos 3D. El sistema esta diseñado para ser modular, permitiendo la inspeccion detallada de cada etapa del pipeline de vision por computadora.
 
-------------------------------------------------------------------------
+## 2. Arquitectura de Clases y Modulos
 
-# 1. Match
+### DataProvider (data_acquisition_provider.py)
+Gestiona la entrada de datos del sistema. Su funcion principal es cargar la matriz intrinseca (K) y los coeficientes de distorsion calculados previamente en la fase de calibracion. Tambien se encarga de la lectura de frames, asegurando que el procesamiento posterior cuente con datos geometricamente validos.
 
-Un **match** es una coincidencia entre descriptores de dos imágenes.
+### ORBFeatureExtractor (feature_extraction_orb.py)
+Encargado de la percepcion visual. Utiliza el algoritmo ORB (Oriented FAST and Rotated BRIEF) para detectar puntos de interes y generar descriptores binarios. Se ha configurado para extraer hasta n caracteristicas por imagen, garantizando una densidad suficiente para la triangulacion en entornos con componentes electronicos pequeños.
 
-En el código esto ocurre en la siguiente línea:
+### FeatureMatcher (feature_matching_ransac.py)
+Establece las correspondencias entre imagenes. Utiliza un buscador de fuerza bruta con norma Hamming y aplica el Test de Ratio de Lowe para filtrar ambigüedades. Incorpora el calculo de la Matriz Esencial bajo el esquema RANSAC para eliminar correspondencias que no cumplen con la restriccion epipolar.
 
-``` python
-matches = match_descriptors(descriptors1, descriptors2, cross_check=True)
-```
+### MotionEstimator (motion_estimation_geometry.py)
+Calcula la cinematica de la camara. Descompone la Matriz Esencial en una matriz de rotacion (R) y un vector de traslacion (t). Aplica una verificacion de quiralidad (Cheirality Check) para determinar cual de las cuatro soluciones posibles es la que situa los puntos 3D frente a ambos centros opticos.
 
-Cada match indica que:
+### MapTriangulator (map_triangulation_3d.py)
+Realiza la reconstruccion espacial. Utiliza las matrices de proyeccion de ambas camaras para intersectar los rayos de luz provenientes de los puntos 2D. La salida es un conjunto de coordenadas euclidianas (X, Y, Z) tras realizar la division perspectiva sobre el espacio homogeneo.
 
--   Un **keypoint** detectado en la **imagen 1** tiene un descriptor
-    similar a un **keypoint** en la **imagen 2**.
+## 3. Instrucciones de Ejecucion
+Para ejecutar el pipeline completo y abrir las herramientas de inspeccion, utilice el siguiente comando:
 
+python main.py
 
-Esto significa que el algoritmo cree que esos puntos representan la
-misma región de la escena.
+## 4. Guia de Visualizacion e Interaccion
+El sistema despliega una interfaz doble sincronizada para validar la precision del algoritmo:
 
-Sin embargo, **no todos los matches son correctos**.
+### Visor de Correspondencias 2D (OpenCV)
+Muestra el flujo optico entre las dos imagenes cargadas. 
+- Trackbar (Match ID): Permite desplazarse individualmente por cada match detectado.
+- Feedback Visual: El match seleccionado se resalta en verde con circulos azules, permitiendo verificar si los puntos corresponden al mismo componente fisico.
 
-Pueden existir errores debido a:
+### Inspeccion de Nube de Puntos 3D (Matplotlib)
+Genera una grafica interactiva de los landmarks triangulados.
+- Interaccion de Puntos: El usuario puede hacer clic en cualquier punto 3D de la grafica.
+- Consola de Inspeccion: Al presionar un punto, la terminal imprimira el ID del match y sus coordenadas exactas. Este ID puede ser buscado manualmente en el visor 2D para comparar el error de reproyeccion.
 
--   texturas repetidas
--   ruido
--   iluminación diferente
--   patrones visuales similares
-
-Por lo tanto, los matches iniciales pueden contener errores.
-
-------------------------------------------------------------------------
-
-# 2. Inlier
-
-Un **inlier** es un match que **sí respeta la geometría de la escena**.
-
-Para determinar esto usamos **RANSAC**.
-
-En el código:
-
-``` python
-model_robust, inliers = ransac(
-    (dst, src),
-    AffineTransform,
-    min_samples=4,
-    residual_threshold=2,
-    max_trials=1000
-)
-```
-
-RANSAC funciona de la siguiente manera:
-
-1.  Intenta calcular una transformación geométrica entre las imágenes.
-2.  Evalúa qué matches son consistentes con esa transformación.
-
-Los matches se clasifican en:
-
-  Tipo      Significado
-  --------- ------------------------------------
-  Inlier    match consistente con la geometría
-  Outlier   match incorrecto
+## 5. Limitaciones Tecnicas y Errores Conocidos
 
 
-Los **inliers representan correspondencias confiables**.
+1. Ambigüedad de Escala: Al utilizar una sola camara (monocular), el sistema no conoce la escala absoluta. Las distancias son relativas a la unidad, no necesariamente en metros o milimetros reales.
+2. Error por Baseline Corto: Si el desplazamiento lateral entre las fotos es muy pequeño, los angulos de triangulacion resultan en una alta incertidumbre de profundidad (Eje Z).
+3. Dependencia de Calibracion: Los resultados son altamente sensibles a la matriz K. Se asume que el Samsung S24 entrega imagenes rectificadas por hardware, por lo que una sobre-correccion mediante software podria degradar la geometria.
+4. Ruido de Profundidad: Puntos extremadamente lejanos pueden presentar mayor dispersion debido a la limitada resolucion de los descriptores ORB en distancias largas.
 
+## 6. Requisitos del Sistema
+- Python 3.10 o superior.
+- OpenCV (opencv-python).
+- NumPy.
+- Matplotlib.
 
-------------------------------------------------------------------------
-
-# 3. Ejemplo con resultados del programa
-
-Supongamos que el programa imprime:
-
-    Matches: 188
-    Inliers: 142
-    Similarity score: 0.284
-
-Interpretación:
-
-  Métrica       Significado
-  ------------- -----------------------------------------
-  188 matches   coincidencias visuales entre imágenes
-  142 inliers   coincidencias geométricamente correctas
-  46 outliers   coincidencias incorrectas descartadas
